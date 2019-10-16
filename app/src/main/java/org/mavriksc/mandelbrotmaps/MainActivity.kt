@@ -16,14 +16,12 @@ class MainActivity : AppCompatActivity() {
     private val colorView: ImageView by lazy { findViewById<ImageView>(R.id.colorView) }
 
     private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
-
     private lateinit var task: Runnable
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         task = Runnable {
-
             val x = Random.nextInt(bitmap.width - 20)
             val y = Random.nextInt(bitmap.height - 20)
 
@@ -40,5 +38,4 @@ class MainActivity : AppCompatActivity() {
         }
         mHandler.postDelayed(task, 500)
     }
-
 }
