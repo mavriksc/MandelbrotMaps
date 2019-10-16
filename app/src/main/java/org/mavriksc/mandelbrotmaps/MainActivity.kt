@@ -18,8 +18,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         task = Runnable {
-            val editText = findViewById<ImageView>(R.id.colorView)
-            val img = editText.drawToBitmap()
+            val colorView = findViewById<ImageView>(R.id.colorView)
+            val img = colorView.drawToBitmap()
             val x = Random.nextInt(img.width - 20)
             val y = Random.nextInt(img.height - 20)
 
@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
                         color = Color.CYAN
                     )
                 }
-            editText.setImageBitmap(img)
+            colorView.setImageBitmap(img)
             mHandler.post(task)
         }
         mHandler.postDelayed(task, 5000)
