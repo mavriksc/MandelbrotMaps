@@ -74,11 +74,11 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getCount(coord: ImaginaryNumber): Int {
+    private fun getCount(c: ImaginaryNumber): Int {
         var z = ImaginaryNumber(0.0, 0.0)
         var count = -1
         while (z.magnitude() < 2 && count < loop) {
-            z = z * z + coord
+            z = z * z + c
             count++
         }
         return count
