@@ -20,10 +20,19 @@ class MainActivity : AppCompatActivity() {
 
     private val MAX_ITER = 20
 
-    private val colorMap: Map<Int, Int> = mapOf(1 to Color.WHITE,2 to Color.CYAN,3 to Color.BLUE, 4 to Color.GREEN, 5 to Color.YELLOW)
+    private val colors: List<Int> = listOf(
+        Color.LTGRAY,
+        Color.WHITE,
+        Color.CYAN,
+        Color.BLUE,
+        Color.GREEN,
+        Color.YELLOW
+    )
 
-    private val initialRealRange = -2..1
-    private val initialImaginaryRange = -1..1
+    private var hScale = 0.0
+    private var vScale = 0.0
+    private var hOffset = -2
+    private var vOffset = 1
 
     private lateinit var task: Runnable
 
@@ -31,41 +40,35 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         task = Runnable {
-            val x = Random.nextInt(bitmap.width - 20)
-            val y = Random.nextInt(bitmap.height - 20)
-
-            for (i in 0..20)
-                for (j in 0..20) {
-                    bitmap.set(
-                        x = i + x,
-                        y = j + y,
-                        color = Color.CYAN
-                    )
-                }
-            colorView.setImageBitmap(bitmap)
-            mHandler.post(task)
+            doIt()
         }
         mHandler.postDelayed(task, 500)
-        testImaginaryNums()
     }
 
-    private fun testImaginaryNums() {
-        val x = ImaginaryNumber(1.0, 1.0)
-        val y = ImaginaryNumber(2.0, 2.0)
-        println("x=$x")
-        println("y=$y")
-        println("||X|| = " + x.magnitude())
-        println("||Y|| = " + y.magnitude())
-        println(x + y)
-        println(y * y)
-        println(getCount(x))
-        println(getCount(y))
+    private fun doIt() {
+        hScale = 3.0 / bitmap.width
+        vScale = -2.0 / bitmap.height
+
+        for (x in 0 until bitmap.width) {
+            for (y in 0 until bitmap.height) {
+                val point = pixelToPoint(x, y)
+                val count = getCount(point)
+                val color = if (count == 20) Color.BLACK else colors[count % colors.size]
+                bitmap[x, y] = color
+
+            }
+        }
+        colorView.setImageBitmap(bitmap)
+    }
+
+    private fun pixelToPoint(x: Int, y: Int): ImaginaryNumber {
+        return ImaginaryNumber(x * hScale + hOffset, y * vScale + vOffset)
 
     }
 
     private fun getCount(coord: ImaginaryNumber): Int {
         var z = ImaginaryNumber(0.0, 0.0)
-        var count = 0
+        var count = -1
         while (z.magnitude() < 2 && count < MAX_ITER) {
             z = z * z + coord
             count++
