@@ -35,8 +35,8 @@ class MainActivity : AppCompatActivity() {
 
     private var hScale = 0.0
     private var vScale = 0.0
-    private var hOffset = -2
-    private var vOffset = 1
+    private var hOffset = -2.25
+    private var vOffset = 1.25
 
     private lateinit var task: Runnable
 
@@ -53,13 +53,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun doIt() {
         hScale = 3.0 / bitmap.width
-        vScale = -2.0 / bitmap.height
+        vScale = -2.5 / bitmap.height
 
         for (x in 0 until bitmap.width) {
             for (y in 0 until bitmap.height) {
                 if (loop==1 || bitmap[x, y] == Color.BLACK){
                     val point = pixelToPoint(x, y)
-                    val count = getCount(point)
+                    val count = getCountJ(point,ImaginaryNumber(0.3543,0.3543))
                     val color = if (count == loop) Color.BLACK else colors[count % colors.size]
                     bitmap[x, y] = color
                 }
@@ -77,6 +77,16 @@ class MainActivity : AppCompatActivity() {
     private fun getCount(c: ImaginaryNumber): Int {
         var z = ImaginaryNumber(0.0, 0.0)
         var count = -1
+        while (z.magnitude() < 2 && count < loop) {
+            z = z * z + c
+            count++
+        }
+        return count
+    }
+
+    private fun getCountJ(zStart: ImaginaryNumber,c: ImaginaryNumber): Int {
+        var z = ImaginaryNumber(zStart.real,zStart.imaginary)
+        var count = 0
         while (z.magnitude() < 2 && count < loop) {
             z = z * z + c
             count++
