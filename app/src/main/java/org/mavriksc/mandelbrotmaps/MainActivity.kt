@@ -59,7 +59,8 @@ class MainActivity : AppCompatActivity() {
             for (y in 0 until bitmap.height) {
                 if (loop==1 || bitmap[x, y] == Color.BLACK){
                     val point = pixelToPoint(x, y)
-                    val count = getCountJ(point,ImaginaryNumber(0.3543,0.3543))
+                    //val count = getCountJ(point,ImaginaryNumber(0.3543,0.3543))
+                    val count = getCount(point)
                     val color = if (count == loop) Color.BLACK else colors[count % colors.size]
                     bitmap[x, y] = color
                 }
