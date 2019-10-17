@@ -2,10 +2,10 @@ package org.mavriksc.mandelbrotmaps
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.get
 import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
@@ -18,9 +18,24 @@ class MainActivity : AppCompatActivity() {
 
     private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
 
-    private val maxLoops = 100
+    private val zs: Array<Array<ImaginaryNumber>> by lazy {
+        Array(bitmap.width) {
+            Array(bitmap.height) {
+                ImaginaryNumber(
+                    0.0,
+                    0.0
+                )
+            }
+        }
+    }
 
-    private var loop = 1
+    private val pixelsToCalculate by lazy {
+        Array(bitmap.width * bitmap.height) { i -> Pair(i % bitmap.width, i / bitmap.width) }
+    }
+
+    private val maxLoops = 200
+
+    private var loop = 0
 
     private val colors: List<Int> = listOf(
         Color.LTGRAY,
@@ -51,13 +66,14 @@ class MainActivity : AppCompatActivity() {
         mHandler.postDelayed(task, 500)
     }
 
-    private fun doIt() {
+    @Deprecated("old")
+    private fun doItOld() {
         hScale = 3.0 / bitmap.width
         vScale = -2.5 / bitmap.height
 
         for (x in 0 until bitmap.width) {
             for (y in 0 until bitmap.height) {
-                if (loop==1 || bitmap[x, y] == Color.BLACK){
+                if (loop == 1 || bitmap[x, y] == Color.BLACK) {
                     val point = pixelToPoint(x, y)
                     //val count = getCountJ(point,ImaginaryNumber(0.3543,0.3543))
                     val count = getCount(point)
@@ -70,9 +86,41 @@ class MainActivity : AppCompatActivity() {
         loop++
     }
 
+    private fun doIt() {
+        hScale = 3.0 / bitmap.width
+        vScale = -2.5 / bitmap.height
+
+        for (x in 0 until bitmap.width) {
+            for (y in 0 until bitmap.height) {
+                if (loop == 0 || bitmap[x, y] == Color.BLACK) {
+                    //bitmap[x, y] = getColorMB(x, y)
+                    bitmap[x, y] = getColorJulia(x, y, ImaginaryNumber(0.3543,0.3543))
+                }
+            }
+        }
+        colorView.setImageBitmap(bitmap)
+        loop++
+    }
+
     private fun pixelToPoint(x: Int, y: Int): ImaginaryNumber {
         return ImaginaryNumber(x * hScale + hOffset, y * vScale + vOffset)
 
+    }
+
+    private fun getColorMB(x: Int, y: Int): Int {
+        val c = pixelToPoint(x, y)
+        zs[x][y] = zs[x][y] * zs[x][y] + c
+        return if (zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
+    }
+
+    private fun getColorJulia(x: Int, y: Int, c: ImaginaryNumber): Int {
+        val z = pixelToPoint(x, y)
+        if (loop == 0) {
+            zs[x][y] = z * z + c
+        } else {
+            zs[x][y] = zs[x][y] * zs[x][y] + c
+        }
+        return if (zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
     }
 
     private fun getCount(c: ImaginaryNumber): Int {
@@ -85,8 +133,8 @@ class MainActivity : AppCompatActivity() {
         return count
     }
 
-    private fun getCountJ(zStart: ImaginaryNumber,c: ImaginaryNumber): Int {
-        var z = ImaginaryNumber(zStart.real,zStart.imaginary)
+    private fun getCountJ(zStart: ImaginaryNumber, c: ImaginaryNumber): Int {
+        var z = ImaginaryNumber(zStart.real, zStart.imaginary)
         var count = 0
         while (z.magnitude() < 2 && count < loop) {
             z = z * z + c
