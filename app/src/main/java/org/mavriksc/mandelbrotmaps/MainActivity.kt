@@ -29,11 +29,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val pixelsToCalculate by lazy {
-        Array(bitmap.width * bitmap.height) { i -> Pair(i % bitmap.width, i / bitmap.width) }
-    }
 
-    private val maxLoops = 200
+    private val maxLoops = 500
 
     private var loop = 0
 
@@ -93,11 +90,12 @@ class MainActivity : AppCompatActivity() {
         for (x in 0 until bitmap.width) {
             for (y in 0 until bitmap.height) {
                 if (loop == 0 || bitmap[x, y] == Color.BLACK) {
-                    //bitmap[x, y] = getColorMB(x, y)
-                    bitmap[x, y] = getColorJulia(x, y, ImaginaryNumber(0.3543,0.3543))
+                    bitmap[x, y] = getColorMB(x, y)
+                    //bitmap[x, y] = getColorJulia(x, y, ImaginaryNumber(0.3543,0.3543))
                 }
             }
         }
+
         colorView.setImageBitmap(bitmap)
         loop++
     }
