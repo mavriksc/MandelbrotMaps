@@ -85,7 +85,10 @@ class MainActivity : AppCompatActivity() {
                     val ys = y + it.y
                     if (loop == 0 || bitmap[xs, ys] == Color.BLACK) {
                         //val color = getColorMB(it,x, y)
-                       val color = getColorJulia(it, x, y, ImaginaryNumber(0.3543, 0.3543))
+                       val color = getColorJulia(it, x, y, ImaginaryNumber(-0.5, -0.6))
+                        // good julia set values
+                        // ImaginaryNumber(0.3543, 0.3543)
+                        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
                         bitmap[xs, ys] = color
 
                         if (color != Color.BLACK) {
