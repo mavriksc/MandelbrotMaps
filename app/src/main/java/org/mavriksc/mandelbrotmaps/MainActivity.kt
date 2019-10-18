@@ -28,6 +28,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    // TODO sector map !!
+    
 
 
     private val maxLoops = 500
