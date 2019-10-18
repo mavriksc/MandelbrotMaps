@@ -10,6 +10,8 @@ import androidx.core.graphics.get
 import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
+import org.mavriksc.mandelbrotmaps.type.Sector
+import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
     private var mHandler = Handler()
@@ -18,19 +20,25 @@ class MainActivity : AppCompatActivity() {
 
     private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
 
-    private val zs: Array<Array<ImaginaryNumber>> by lazy {
-        Array(bitmap.width) {
-            Array(bitmap.height) {
-                ImaginaryNumber(
-                    0.0,
-                    0.0
+    private val sectors: MutableList<Sector> by lazy {
+        val sectorSize = 50
+        val list = mutableListOf<Sector>()
+        for (x in 0 until bitmap.width step sectorSize) {
+            for (y in 0 until bitmap.height step sectorSize) {
+                list.add(
+                    Sector(
+                        x,
+                        y,
+                        min(sectorSize, bitmap.width - x),
+                        min(sectorSize, bitmap.height - y)
+                    )
                 )
             }
         }
+        list
     }
 
-
-    private val maxLoops = 500
+    private val maxLoops = 1000
 
     private var loop = 0
 
@@ -63,38 +71,34 @@ class MainActivity : AppCompatActivity() {
         mHandler.postDelayed(task, 500)
     }
 
-    @Deprecated("old")
-    private fun doItOld() {
-        hScale = 3.0 / bitmap.width
-        vScale = -2.5 / bitmap.height
-
-        for (x in 0 until bitmap.width) {
-            for (y in 0 until bitmap.height) {
-                if (loop == 1 || bitmap[x, y] == Color.BLACK) {
-                    val point = pixelToPoint(x, y)
-                    //val count = getCountJ(point,ImaginaryNumber(0.3543,0.3543))
-                    val count = getCount(point)
-                    val color = if (count == loop) Color.BLACK else colors[count % colors.size]
-                    bitmap[x, y] = color
-                }
-            }
-        }
-        colorView.setImageBitmap(bitmap)
-        loop++
-    }
-
     private fun doIt() {
         hScale = 3.0 / bitmap.width
         vScale = -2.5 / bitmap.height
+        val remove = mutableSetOf<Sector>()
 
-        for (x in 0 until bitmap.width) {
-            for (y in 0 until bitmap.height) {
-                if (loop == 0 || bitmap[x, y] == Color.BLACK) {
-                    bitmap[x, y] = getColorMB(x, y)
-                    //bitmap[x, y] = getColorJulia(x, y, ImaginaryNumber(0.3543,0.3543))
+        sectors.forEach {
+            for (x in 0 until it.width) {
+                for (y in 0 until it.height) {
+                    val xs = x + it.x
+                    val ys = y + it.y
+                    if (loop == 0 || bitmap[xs, ys] == Color.BLACK) {
+                        //val color = getColorMB(it,x, y)
+                       val color = getColorJulia(it, x, y, ImaginaryNumber(-0.5, -0.6))
+                        // good julia set values
+                        // ImaginaryNumber(0.3543, 0.3543)
+                        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
+                        bitmap[xs, ys] = color
+
+                        if (color != Color.BLACK) {
+                            it.unFilled--
+                        }
+                    }
                 }
             }
+            if (it.unFilled == 0) remove.add(it)
         }
+        remove.forEach { println("removing sector (${it.x},${it.y})") }
+        if (sectors.removeAll(remove)) println("Sectors left ${sectors.size}")
 
         colorView.setImageBitmap(bitmap)
         loop++
@@ -105,40 +109,20 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getColorMB(x: Int, y: Int): Int {
-        val c = pixelToPoint(x, y)
-        zs[x][y] = zs[x][y] * zs[x][y] + c
-        return if (zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
+    private fun getColorMB(sector: Sector, x: Int, y: Int): Int {
+        val c = pixelToPoint(x + sector.x, y + sector.y)
+        sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
+        return if (sector.zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
     }
 
-    private fun getColorJulia(x: Int, y: Int, c: ImaginaryNumber): Int {
-        val z = pixelToPoint(x, y)
+    private fun getColorJulia(sector: Sector, x: Int, y: Int, c: ImaginaryNumber): Int {
+        val z = pixelToPoint(x + sector.x, y + sector.y)
         if (loop == 0) {
-            zs[x][y] = z * z + c
+            sector.zs[x][y] = z * z + c
         } else {
-            zs[x][y] = zs[x][y] * zs[x][y] + c
+            sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
         }
-        return if (zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
-    }
-
-    private fun getCount(c: ImaginaryNumber): Int {
-        var z = ImaginaryNumber(0.0, 0.0)
-        var count = -1
-        while (z.magnitude() < 2 && count < loop) {
-            z = z * z + c
-            count++
-        }
-        return count
-    }
-
-    private fun getCountJ(zStart: ImaginaryNumber, c: ImaginaryNumber): Int {
-        var z = ImaginaryNumber(zStart.real, zStart.imaginary)
-        var count = 0
-        while (z.magnitude() < 2 && count < loop) {
-            z = z * z + c
-            count++
-        }
-        return count
+        return if (sector.zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
     }
 
 }
