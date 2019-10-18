@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity() {
         list
     }
 
-
     private val maxLoops = 1000
 
     private var loop = 0
@@ -103,7 +102,6 @@ class MainActivity : AppCompatActivity() {
         colorView.setImageBitmap(bitmap)
         loop++
     }
-
 
     private fun pixelToPoint(x: Int, y: Int): ImaginaryNumber {
         return ImaginaryNumber(x * hScale + hOffset, y * vScale + vOffset)
