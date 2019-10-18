@@ -11,9 +11,7 @@ import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
 import org.mavriksc.mandelbrotmaps.type.Sector
-import kotlin.math.ceil
 import kotlin.math.min
-import kotlin.math.round
 
 class MainActivity : AppCompatActivity() {
     private var mHandler = Handler()
