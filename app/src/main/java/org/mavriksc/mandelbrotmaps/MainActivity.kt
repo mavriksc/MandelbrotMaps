@@ -22,17 +22,6 @@ class MainActivity : AppCompatActivity() {
 
     private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
 
-    private val zs: Array<Array<ImaginaryNumber>> by lazy {
-        Array(bitmap.width) {
-            Array(bitmap.height) {
-                ImaginaryNumber(
-                    0.0,
-                    0.0
-                )
-            }
-        }
-    }
-
     private val sectors: MutableList<Sector> by lazy {
         val sectorSize = 50
         val list = mutableListOf<Sector>()
@@ -97,7 +86,7 @@ class MainActivity : AppCompatActivity() {
                     val ys = y + it.y
                     if (loop == 0 || bitmap[xs, ys] == Color.BLACK) {
                         //val color = getColorMB(it,x, y)
-                        val color = getColorJulia(it, x, y, ImaginaryNumber(0.3543, 0.3543))
+                       val color = getColorJulia(it, x, y, ImaginaryNumber(0.3543, 0.3543))
                         bitmap[xs, ys] = color
 
                         if (color != Color.BLACK) {
@@ -110,8 +99,6 @@ class MainActivity : AppCompatActivity() {
         }
         remove.forEach { println("removing sector (${it.x},${it.y})") }
         if (sectors.removeAll(remove)) println("Sectors left ${sectors.size}")
-
-
 
         colorView.setImageBitmap(bitmap)
         loop++
