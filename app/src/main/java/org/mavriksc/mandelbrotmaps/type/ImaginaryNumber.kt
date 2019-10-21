@@ -4,7 +4,7 @@ import kotlin.math.sqrt
 
 class ImaginaryNumber(val real: Double = 0.0, val imaginary: Double = 0.0) {
 
-    fun magnitude(): Double = sqrt(real * real + imaginary * imaginary)
+    val magnitude by lazy{ sqrt(real * real + imaginary * imaginary)}
 
     operator fun plus(other: ImaginaryNumber): ImaginaryNumber =
         ImaginaryNumber(real + other.real, imaginary + other.imaginary)
