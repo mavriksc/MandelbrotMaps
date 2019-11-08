@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
                     val ys = y + it.y
                     if (loop == 0 || bitmap[xs, ys] == Color.BLACK) {
                         //val color = getColorMB(it,x, y)
-                        val color = getColorJulia(it, x, y, ImaginaryNumber(-0.7269, 0.1889))
+                        val color = getColorJulia(it, x, y, ImaginaryNumber(0.3543, 0.3543))
                         // good julia set values
                         // ImaginaryNumber(0.3543, 0.3543)
                         // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
     private fun getColorMB(sector: Sector, x: Int, y: Int): Int {
         val c = pixelToPoint(x + sector.x, y + sector.y)
         sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
-        return if (sector.zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
+        return if (sector.zs[x][y].magnitude > 2) colors[loop % colors.size] else Color.BLACK
     }
 
     private fun getColorJulia(sector: Sector, x: Int, y: Int, c: ImaginaryNumber): Int {
@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
         }
-        return if (sector.zs[x][y].magnitude() > 2) colors[loop % colors.size] else Color.BLACK
+        return if (sector.zs[x][y].magnitude > 2) colors[loop % colors.size] else Color.BLACK
     }
 
 }
