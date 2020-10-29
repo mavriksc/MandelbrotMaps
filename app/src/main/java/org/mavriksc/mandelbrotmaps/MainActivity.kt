@@ -7,41 +7,44 @@ import android.os.Handler
 import android.view.View
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.get
 import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
-import org.mavriksc.mandelbrotmaps.type.Sector
-import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
+
+    private val trueForMandelbrotFalseForJulia = false
+    private val maxLoops = 1000
+    private var loop = 0
+
+    private val hScale by lazy { 3.0 / bitmap.width }
+    private val vScale by lazy { -2.5 / bitmap.height }
+    private val hOffset = -2.25
+    private val vOffset = 1.25
+
     private var mHandler = Handler()
 
     private val colorView: ImageView by lazy { findViewById<ImageView>(R.id.colorView) }
 
     private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
 
-    private val sectors: MutableList<Sector> by lazy {
-        val sectorSize = 50
-        val list = mutableListOf<Sector>()
-        for (x in 0 until bitmap.width step sectorSize) {
-            for (y in 0 until bitmap.height step sectorSize) {
-                list.add(
-                    Sector(
-                        x,
-                        y,
-                        min(sectorSize, bitmap.width - x),
-                        min(sectorSize, bitmap.height - y)
-                    )
+
+    private val pixels: MutableList<Pixel> by lazy {
+        if (trueForMandelbrotFalseForJulia)
+            MutableList<Pixel>(bitmap.width * bitmap.height) {
+                Pixel(
+                    it % bitmap.width, it / bitmap.width,
+                    ImaginaryNumber(0.0, 0.0)
                 )
             }
-        }
-        list
+        else
+            MutableList<Pixel>(bitmap.width * bitmap.height) {
+                Pixel(
+                    it % bitmap.width, it / bitmap.width,
+                    pixelToImaginaryNumber(it % bitmap.width, it / bitmap.width)
+                )
+            }
     }
-
-    private val maxLoops = 1000
-
-    private var loop = 0
 
     private val colors: List<Int> = listOf(
         Color.LTGRAY,
@@ -54,17 +57,12 @@ class MainActivity : AppCompatActivity() {
         Color.MAGENTA
     )
 
-    private var hScale = 0.0
-    private var vScale = 0.0
-    private var hOffset = -2.25
-    private var vOffset = 1.25
-
     private lateinit var task: Runnable
     private val mHideHandler = Handler()
 
-
     private var mVisible: Boolean = false
     private val mHideRunnable = Runnable { hide() }
+
     /**
      * Touch listener to use for in-layout UI controls to delay hiding the
      * system UI. This is to prevent the jarring behavior of controls going away
@@ -82,68 +80,51 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         task = Runnable {
             doIt()
-            if (loop < maxLoops)
+            if (loop < maxLoops || pixels.isNotEmpty())
                 mHandler.post(task)
         }
         mHandler.postDelayed(task, 500)
     }
 
     private fun doIt() {
-        hScale = 3.0 / bitmap.width
-        vScale = -2.5 / bitmap.height
-        val remove = mutableSetOf<Sector>()
-
-        sectors.forEach {
-            for (x in 0 until it.width) {
-                for (y in 0 until it.height) {
-                    val xs = x + it.x
-                    val ys = y + it.y
-                    if (loop == 0 || bitmap[xs, ys] == Color.BLACK) {
-                        //val color = getColorMB(it,x, y)
-                        val color = getColorJulia(it, x, y, ImaginaryNumber(0.3543, 0.3543))
-                        // good julia set values
-                        // ImaginaryNumber(0.3543, 0.3543)
-                        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
-                        // ImaginaryNumber(-0.8, 0.156)
-                        // ImaginaryNumber(-0.7269, 0.1889)
-
-                        bitmap[xs, ys] = color
-
-                        if (color != Color.BLACK) {
-                            it.unFilled--
-                        }
-                    }
+        val remove = mutableSetOf<Pixel>()
+        pixels.forEach {
+            when {
+                it.value.magnitude > 2 -> {
+                    bitmap[it.x, it.y] = colors[loop % colors.size]
+                    remove.add(it)
+                }
+                else -> {
+                    it.value = zIter(it)
+                    bitmap[it.x, it.y] = Color.BLACK
                 }
             }
-            if (it.unFilled == 0) remove.add(it)
         }
-        remove.forEach { println("removing sector (${it.x},${it.y})") }
-        if (sectors.removeAll(remove)) println("Sectors left ${sectors.size}")
-
+        pixels.removeAll(remove)
         colorView.setImageBitmap(bitmap)
         loop++
+        println("loop:$loop")
     }
 
-    private fun pixelToPoint(x: Int, y: Int): ImaginaryNumber {
-        return ImaginaryNumber(x * hScale + hOffset, y * vScale + vOffset)
-
+    private fun zIter(pixel: Pixel): ImaginaryNumber {
+        return if (trueForMandelbrotFalseForJulia) mandelbrotIter(pixel)
+        else juliaIter(pixel, ImaginaryNumber(-0.8, 0.156))
+        // good julia set values
+        // ImaginaryNumber(0.3543, 0.3543)
+        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
+        // ImaginaryNumber(-0.8, 0.156)
+        // ImaginaryNumber(-0.7269, 0.1889)
     }
 
-    private fun getColorMB(sector: Sector, x: Int, y: Int): Int {
-        val c = pixelToPoint(x + sector.x, y + sector.y)
-        sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
-        return if (sector.zs[x][y].magnitude > 2) colors[loop % colors.size] else Color.BLACK
-    }
+    private fun mandelbrotIter(pixel: Pixel) =
+        pixel.value * pixel.value + pixelToImaginaryNumber(pixel.x, pixel.y)
 
-    private fun getColorJulia(sector: Sector, x: Int, y: Int, c: ImaginaryNumber): Int {
-        val z = pixelToPoint(x + sector.x, y + sector.y)
-        if (loop == 0) {
-            sector.zs[x][y] = z * z + c
-        } else {
-            sector.zs[x][y] = sector.zs[x][y] * sector.zs[x][y] + c
-        }
-        return if (sector.zs[x][y].magnitude > 2) colors[loop % colors.size] else Color.BLACK
-    }
+    private fun juliaIter(pixel: Pixel, c: ImaginaryNumber) = pixel.value * pixel.value + c
+
+    //screen pixel to point in imaginary plane
+    private fun pixelToImaginaryNumber(x: Int, y: Int) =
+        ImaginaryNumber(x * hScale + hOffset, y * vScale + vOffset)
+
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
@@ -202,3 +183,5 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
+
+data class Pixel(val x: Int, val y: Int, var value: ImaginaryNumber)

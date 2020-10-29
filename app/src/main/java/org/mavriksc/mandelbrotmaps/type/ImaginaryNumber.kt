@@ -2,7 +2,7 @@ package org.mavriksc.mandelbrotmaps.type
 
 import kotlin.math.sqrt
 
-class ImaginaryNumber(val real: Double = 0.0, val imaginary: Double = 0.0) {
+class ImaginaryNumber(private val real: Double = 0.0, private val imaginary: Double = 0.0) {
 
     val magnitude by lazy{ sqrt(real * real + imaginary * imaginary)}
 
