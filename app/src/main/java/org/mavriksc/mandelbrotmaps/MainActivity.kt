@@ -11,6 +11,11 @@ import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
 
+
+
+//TODO check value if over 2 color. look at all adjacent black pixels.
+// if over 2 color else add to next loop search seeds
+
 class MainActivity : AppCompatActivity() {
 
     private val trueForMandelbrotFalseForJulia = false
@@ -108,7 +113,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun zIter(pixel: Pixel): ImaginaryNumber {
         return if (trueForMandelbrotFalseForJulia) mandelbrotIter(pixel)
-        else juliaIter(pixel, ImaginaryNumber(-0.8, 0.156))
+        else juliaIter(pixel, ImaginaryNumber(-0.7269, 0.1889))
         // good julia set values
         // ImaginaryNumber(0.3543, 0.3543)
         // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
