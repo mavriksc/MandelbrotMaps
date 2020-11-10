@@ -9,30 +9,74 @@ import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.set
 import androidx.core.view.drawToBitmap
+import kotlinx.coroutines.*
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
-
+import java.lang.Runnable
+import java.util.concurrent.atomic.AtomicInteger
 
 
 //TODO check value if over 2 color. look at all adjacent black pixels.
 // if over 2 color else add to next loop search seeds
+// will probably be better to use 2D array
+// 2d array of imaginary numbers and count 0 for init
+// set of points to explore now (init with corners)
+// set of points to start with next round
+// if points aren't over threshold add to next round
+// since we're not calculating value each time will need to iter upt to count on unknown values
 
-class MainActivity : AppCompatActivity() {
 
-    private val trueForMandelbrotFalseForJulia = false
+// structure too deep runs out of memory better to do in batches
+// done still kinda slow :*(
+
+class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
+
+    private val trueForMandelbrotFalseForJulia = true
     private val maxLoops = 1000
+    private var solved=AtomicInteger(0)
     private var loop = 0
 
     private val hScale by lazy { 3.0 / bitmap.width }
     private val vScale by lazy { -2.5 / bitmap.height }
-    private val hOffset = -2.25
+    private val hOffset = -1.5
     private val vOffset = 1.25
 
     private var mHandler = Handler()
 
     private val colorView: ImageView by lazy { findViewById<ImageView>(R.id.colorView) }
 
-    private val bitmap: Bitmap by lazy { colorView.drawToBitmap() }
+    private val bitmap: Bitmap by lazy {
+        val bm = colorView.drawToBitmap()
+        (0 until bm.width).forEach { x ->
+            (0 until bm.height).forEach { y ->
 
+                bm[x, y] = Color.BLACK
+            }
+        }
+        bm
+    }
+
+    //  first:x,last:y
+    private val nextRoundSeeds: MutableSet<Pair<Int, Int>> by lazy {
+        mutableSetOf(
+            Pair(0, 0)//,
+//            Pair(bitmap.width - 1, 0),
+//            Pair(0, bitmap.height - 1),
+//            Pair(bitmap.width - 1, bitmap.height - 1)
+        )
+    }
+    private val colorThisRound = mutableSetOf<Pair<Int, Int>>()
+
+    // first: currentCount, last: currentValue
+    private val mbSpace: Array<Array<Pair<Int, ImaginaryNumber>>> by lazy {
+        Array(bitmap.width) { x ->
+            Array(bitmap.height) { y ->
+                if (trueForMandelbrotFalseForJulia)
+                    Pair(-1, ImaginaryNumber(0.0, 0.0))
+                else
+                    Pair(-1, pixelToImaginaryNumber(x, y))
+            }
+        }
+    }
 
     private val pixels: MutableList<Pixel> by lazy {
         if (trueForMandelbrotFalseForJulia)
@@ -84,36 +128,43 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         task = Runnable {
-            doIt()
-            if (loop < maxLoops || pixels.isNotEmpty())
-                mHandler.post(task)
+            doItCoroutines()
         }
         mHandler.postDelayed(task, 500)
     }
 
-    private fun doIt() {
-        val remove = mutableSetOf<Pixel>()
-        pixels.forEach {
-            when {
-                it.value.magnitude > 2 -> {
-                    bitmap[it.x, it.y] = colors[loop % colors.size]
-                    remove.add(it)
+
+    private fun doItCoroutines() {
+        (0 until bitmap.width).forEach { x ->
+            launch {
+                (0 until bitmap.height).forEach { y ->
+                    bitmap[x, y] = solveColor(x, y)
                 }
-                else -> {
-                    it.value = zIter(it)
-                    bitmap[it.x, it.y] = Color.BLACK
-                }
+                colorView.setImageBitmap(bitmap)
             }
         }
-        pixels.removeAll(remove)
-        colorView.setImageBitmap(bitmap)
-        loop++
-        println("loop:$loop")
     }
 
-    private fun zIter(pixel: Pixel): ImaginaryNumber {
-        return if (trueForMandelbrotFalseForJulia) mandelbrotIter(pixel)
-        else juliaIter(pixel, ImaginaryNumber(-0.7269, 0.1889))
+    private fun solveColor(x: Int, y: Int): Int {
+        var hereLoop = 0
+        var z = if (trueForMandelbrotFalseForJulia)
+            ImaginaryNumber(0.0, 0.0)
+        else
+            pixelToImaginaryNumber(x, y)
+        while (z.magnitude < 2 && hereLoop < maxLoops) {
+            z = zIterNew(x, y, z)
+            hereLoop++
+        }
+        return if (hereLoop == maxLoops)
+            Color.BLACK
+        else
+            colors[hereLoop % colors.size]
+    }
+
+
+    private fun zIterNew(x: Int, y: Int, z: ImaginaryNumber): ImaginaryNumber {
+        return if (trueForMandelbrotFalseForJulia) mandelbrotIterNew(z,pixelToImaginaryNumber(x, y))
+        else juliaIterNew(z, ImaginaryNumber(-0.7269, 0.1889))
         // good julia set values
         // ImaginaryNumber(0.3543, 0.3543)
         // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
@@ -121,10 +172,9 @@ class MainActivity : AppCompatActivity() {
         // ImaginaryNumber(-0.7269, 0.1889)
     }
 
-    private fun mandelbrotIter(pixel: Pixel) =
-        pixel.value * pixel.value + pixelToImaginaryNumber(pixel.x, pixel.y)
+    private fun mandelbrotIterNew(z:ImaginaryNumber, c: ImaginaryNumber) = z * z + c
 
-    private fun juliaIter(pixel: Pixel, c: ImaginaryNumber) = pixel.value * pixel.value + c
+    private fun juliaIterNew(z:ImaginaryNumber, c: ImaginaryNumber) = z * z + c
 
     //screen pixel to point in imaginary plane
     private fun pixelToImaginaryNumber(x: Int, y: Int) =
