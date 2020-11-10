@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
 
     private val hScale by lazy { 3.0 / bitmap.width }
     private val vScale by lazy { -2.5 / bitmap.height }
-    private val hOffset = -2.25
+    private val hOffset = -1.5
     private val vOffset = 1.25
 
     private var mHandler = Handler()
@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
             doingTheThing(it)
         }
         currentRound.clear()
-        while (colorThisRound.isNotEmpty()){
+        while (colorThisRound.isNotEmpty()) {
             currentRound.addAll(colorThisRound)
             colorThisRound.clear()
             currentRound.forEach {
@@ -168,10 +168,19 @@ class MainActivity : AppCompatActivity() {
             }
             currentRound.clear()
         }
-        colorView.setImageBitmap(bitmap)
         loop++
+        if (loop % 12 == 0) {
+            colorView.setImageBitmap(bitmap)
+        }
         println("loop:$loop")
     }
+
+   suspend fun doItCoroutines() {
+       coroutineScope{
+
+        }
+    }
+
 
     private fun doingTheThing(it: Pair<Int, Int>) {
         iterToCurrent(it.first, it.second)
@@ -195,12 +204,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun iterToCurrent(x: Int, y: Int) {
         val start = mbSpace[x][y].first
-        if (start >-1) {
+        if (start > -1) {
             (start + 1..loop).forEach {
                 mbSpace[x][y] = Pair(it, zIter(x, y))
             }
-        }
-        else
+        } else
             mbSpace[x][y] = Pair(0, mbSpace[x][y].second)
     }
 
