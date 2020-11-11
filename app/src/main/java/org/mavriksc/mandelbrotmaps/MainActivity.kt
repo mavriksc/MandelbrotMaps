@@ -30,12 +30,12 @@ import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
-    private val trueForMandelbrotFalseForJulia = true
-    private val maxLoops = 1000
+    private val trueForMandelbrotFalseForJulia = false
+    private val maxLoops = 50
 
     private val hScale by lazy { 3.0 / bitmap.width }
     private val vScale by lazy { -2.5 / bitmap.height }
-    private val hOffset = -1.5
+    private val hOffset = -2.0
     private val vOffset = 1.25
 
     private var mHandler = Handler()
@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         else
             pixelToImaginaryNumber(x, y)
         while (z.magnitude < 2 && loop < maxLoops) {
-            z = zIterNew(x, y, z)
+            z = zIterator(x, y, z)
             loop++
         }
         return if (loop == maxLoops)
@@ -110,23 +110,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             colors[loop % colors.size]
     }
 
-
-    private fun zIterNew(x: Int, y: Int, z: ImaginaryNumber): ImaginaryNumber {
-        return if (trueForMandelbrotFalseForJulia) mandelbrotIterNew(
-            z,
+    // good julia set values
+    // ImaginaryNumber(0.3543, 0.3543)
+    // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
+    // ImaginaryNumber(-0.8, 0.156)
+    // ImaginaryNumber(-0.7269, 0.1889)
+    private fun zIterator(x: Int, y: Int, z: ImaginaryNumber): ImaginaryNumber {
+        return z*z+ if (trueForMandelbrotFalseForJulia)
             pixelToImaginaryNumber(x, y)
-        )
-        else juliaIterNew(z, ImaginaryNumber(-0.7269, 0.1889))
-        // good julia set values
-        // ImaginaryNumber(0.3543, 0.3543)
-        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
-        // ImaginaryNumber(-0.8, 0.156)
-        // ImaginaryNumber(-0.7269, 0.1889)
+        else ImaginaryNumber(0.125, 0.6)
     }
 
-    private fun mandelbrotIterNew(z: ImaginaryNumber, c: ImaginaryNumber) = z * z + c
-
-    private fun juliaIterNew(z: ImaginaryNumber, c: ImaginaryNumber) = z * z + c
 
     //screen pixel to point in imaginary plane
     private fun pixelToImaginaryNumber(x: Int, y: Int) =
