@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.mavriksc.mandelbrotmaps.type.ImaginaryNumber
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 
 //TODO check value if over 2 color. look at all adjacent black pixels.
@@ -33,10 +35,19 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private val trueForMandelbrotFalseForJulia = true
     private val maxLoops = 1000
 
-    private val hScale by lazy { 3.0 / bitmap.width }
+    private val hScale by lazy { 2.5 / bitmap.width }
     private val vScale by lazy { -2.5 / bitmap.height }
-    private val hOffset = -1.5
+    private val hOffset = -1.25
     private val vOffset = 1.25
+
+    private val solved: Array<Array<AtomicBoolean>> by lazy {
+        Array(bitmap.width) { x ->
+            Array(bitmap.height) { y ->
+                AtomicBoolean(false)
+            }
+        }
+    }
+    private val count = AtomicInteger(0)
 
     private var mHandler = Handler()
 
@@ -46,12 +57,21 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         val bm = colorView.drawToBitmap()
         (0 until bm.width).forEach { x ->
             (0 until bm.height).forEach { y ->
-
                 bm[x, y] = Color.BLACK
             }
         }
         colorView.setImageBitmap(bm)
         bm
+    }
+
+    //  first:x,last:y
+    private val firstRound: Set<Pair<Int, Int>> by lazy {
+        setOf(
+            Pair(0, 0),
+            Pair(bitmap.width - 1, 0),
+            Pair(0, bitmap.height - 1),
+            Pair(bitmap.width - 1, bitmap.height - 1)
+        )
     }
 
     private val colors: List<Int> = listOf(
@@ -77,21 +97,38 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         task = Runnable {
             doItCoroutines()
         }
-        mHandler.postDelayed(task, 500)
+        mHandler.postDelayed(task, 1500)
     }
 
-
     private fun doItCoroutines() {
-        (0 until bitmap.width).forEach { x ->
+        firstRound.forEach {
             launch(Dispatchers.Default) {
-                (0 until bitmap.height).forEach { y ->
-                    bitmap[x, y] = solveColor(x, y)
-                }
-                launch(Dispatchers.Main.immediate) {
-                    colorView.setImageBitmap(bitmap)
-                }
+                solveColorLaunchNeighbors(it.first, it.second)
             }
         }
+    }
+
+    private fun solveColorLaunchNeighbors(x: Int, y: Int) {
+        solved[x][y].set(true)
+        bitmap[x, y] = solveColor(x, y)
+        updateUI()
+        allNeighbors(x, y)
+            .filter {
+                it.first >= 0 && it.first < bitmap.width
+                        && it.second >= 0 && it.second < bitmap.height
+                        && !solved[it.first][it.second].get()
+            }.forEach {
+                launch(Dispatchers.Default) {
+                    solveColorLaunchNeighbors(it.first, it.second)
+                }
+            }
+    }
+
+    private fun updateUI() {
+        if (count.incrementAndGet() % bitmap.width == 0)
+            launch(Dispatchers.Main.immediate) {
+                colorView.setImageBitmap(bitmap)
+            }
     }
 
     private fun solveColor(x: Int, y: Int): Int {
@@ -101,7 +138,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         else
             pixelToImaginaryNumber(x, y)
         while (z.magnitude < 2 && loop < maxLoops) {
-            z = zIterNew(x, y, z)
+            z = zIterator(x, y, z)
             loop++
         }
         return if (loop == maxLoops)
@@ -110,23 +147,25 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             colors[loop % colors.size]
     }
 
-
-    private fun zIterNew(x: Int, y: Int, z: ImaginaryNumber): ImaginaryNumber {
-        return if (trueForMandelbrotFalseForJulia) mandelbrotIterNew(
-            z,
-            pixelToImaginaryNumber(x, y)
+    private fun allNeighbors(x: Int, y: Int): Set<Pair<Int, Int>> =
+        setOf(
+            Pair(x - 1, y - 1), Pair(x, y - 1), Pair(x + 1, y - 1),
+            Pair(x - 1, y), Pair(x + 1, y),
+            Pair(x - 1, y + 1), Pair(x, y + 1), Pair(x + 1, y + 1)
         )
-        else juliaIterNew(z, ImaginaryNumber(-0.7269, 0.1889))
-        // good julia set values
-        // ImaginaryNumber(0.3543, 0.3543)
-        // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
-        // ImaginaryNumber(-0.8, 0.156)
-        // ImaginaryNumber(-0.7269, 0.1889)
+
+    // good julia set values
+    // ImaginaryNumber(0.1, 0.6)
+    // ImaginaryNumber(0.125, 0.6)
+    // ImaginaryNumber(0.3543, 0.3543)
+    // Compare ImaginaryNumber(-0.75, 0.0) to  ImaginaryNumber(-0.75, 0.025)
+    // ImaginaryNumber(-0.8, 0.156)
+    // ImaginaryNumber(-0.7269, 0.1889)
+    private fun zIterator(x: Int, y: Int, z: ImaginaryNumber): ImaginaryNumber {
+        return z*z + if (trueForMandelbrotFalseForJulia)
+            pixelToImaginaryNumber(x, y)
+        else ImaginaryNumber(-0.5, 0.5)
     }
-
-    private fun mandelbrotIterNew(z: ImaginaryNumber, c: ImaginaryNumber) = z * z + c
-
-    private fun juliaIterNew(z: ImaginaryNumber, c: ImaginaryNumber) = z * z + c
 
     //screen pixel to point in imaginary plane
     private fun pixelToImaginaryNumber(x: Int, y: Int) =
@@ -135,7 +174,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
-
         // Trigger the initial hide() shortly after the activity has been
         // created, to briefly hint to the user that UI controls
         // are available.
@@ -146,9 +184,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         // Hide UI first
         supportActionBar?.hide()
         mVisible = false
-
     }
-
 
     private fun delayedHide(delayMillis: Int) {
         mHideHandler.removeCallbacks(mHideRunnable)
