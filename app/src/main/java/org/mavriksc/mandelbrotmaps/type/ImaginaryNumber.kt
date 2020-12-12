@@ -17,7 +17,7 @@ class ImaginaryNumber(private val real: Double = 0.0, private val imaginary: Dou
 
     override fun toString(): String {
         val join = if (imaginary < 0) "-" else "+"
-        return "$real $join $imaginary" + "i"
+        return "$real $join $imaginaryi"
     }
 
 }
